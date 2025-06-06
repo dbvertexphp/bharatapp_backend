@@ -9,7 +9,7 @@ const { notFound, errorHandler } = require("./middleware/errorMiddleware.js");
 
 // ****************** Routes ***********************
 const { userRoutes } = require("./routes/userRoutes.js");
-
+const { adminRoutes } = require("./routes/adminRoutes.js");
 
 // end 
 
@@ -33,6 +33,7 @@ const corsOptions = {
 
   //***********************  Define Routes************************* */
 app.use("/api/user", userRoutes);
+app.use("/api/admin", adminRoutes);
 
 
 
