@@ -146,8 +146,6 @@ const updateUserProfile = async (req, res) => {
   });
 };
 
-// for live
-
 
 
 

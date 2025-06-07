@@ -161,7 +161,7 @@ exports.getAllUsers = async (req, res) => {
 
 exports.updateUserStatus = async (req, res, next) => {
   const { userId, active } = req.body;
-  console.log("req", req.body);
+  // console.log("req", req.body);
 
   if (!userId || typeof active !== "boolean") {
     return next(
@@ -188,3 +188,4 @@ exports.updateUserStatus = async (req, res, next) => {
     },
   });
 };
+

@@ -10,7 +10,8 @@ const { notFound, errorHandler } = require("./middleware/errorMiddleware.js");
 // ****************** Routes ***********************
 const { userRoutes } = require("./routes/userRoutes.js");
 const { adminRoutes } = require("./routes/adminRoutes.js");
-
+const { companyDetails } = require("./routes/companydetailsRoutes.js");
+const { faqRoutes } = require("./routes/faqRoutes.js");
 // end 
 
 connectDB();
@@ -34,7 +35,8 @@ const corsOptions = {
   //***********************  Define Routes************************* */
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
-
+app.use("/api/CompanyDetails", companyDetails);
+app.use("/api", faqRoutes);
 
 
     // --------------------------deploymentssssss------------------------------
