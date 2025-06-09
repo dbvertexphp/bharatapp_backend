@@ -7,13 +7,14 @@ const {
 	verifyOtp,
 	resendOtp,
 	updateUserProfile,
+	addReviewToServiceProvider,
 } = require("../controllers/userControllers.js");
 
 userRoutes.route("/register").post(registerUser);
 userRoutes.route("/verifyOtp").post(verifyOtp);
 userRoutes.route("/resend-otp").post(resendOtp);
 userRoutes.route("/updateUserProfile").put(protect, updateUserProfile);
-
+userRoutes.route("/add-review").post(protect, Authorization(["user"]), addReviewToServiceProvider);
 
 
 module.exports = { userRoutes };

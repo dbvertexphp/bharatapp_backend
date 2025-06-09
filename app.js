@@ -12,6 +12,8 @@ const { userRoutes } = require("./routes/userRoutes.js");
 const { adminRoutes } = require("./routes/adminRoutes.js");
 const { companyDetails } = require("./routes/companydetailsRoutes.js");
 const { faqRoutes } = require("./routes/faqRoutes.js");
+const { workCategoryRoutes } = require("./routes/workCatergoryRoutes.js");
+const { workSubCategoryRoutes } = require("./routes/workSubCategoryRoutes.js");
 // end 
 
 connectDB();
@@ -35,6 +37,8 @@ const corsOptions = {
   //***********************  Define Routes************************* */
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api", workCategoryRoutes);
+app.use("/api", workSubCategoryRoutes);
 app.use("/api/CompanyDetails", companyDetails);
 app.use("/api", faqRoutes);
 
