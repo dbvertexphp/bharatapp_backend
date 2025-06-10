@@ -12,7 +12,6 @@ const reviewSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-
 const userSchema = new mongoose.Schema(
   {
     phone: { type: String, required: true, unique: true },
@@ -25,7 +24,7 @@ const userSchema = new mongoose.Schema(
     full_address: { type: String, default: null },
     landmark: { type: String, default: null },
     colony_name: { type: String, default: null },
-    gali_number: { type: String, default: null },
+    house_number: { type: Number, default: null },
     referral_code: { type: String, default: null },
     firebase_token: { type: String, default: null },
     profile_pic: { type: String },
@@ -40,7 +39,14 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "service_provider", "both"],
       default: null,
     },
-
+    category_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "WorkCategory",
+      default: null,
+    },
+    subcategory_ids: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "SubCategory" },
+    ],
     // New Fields
     hiswork: [{ type: String }],
     skill: { type: String },

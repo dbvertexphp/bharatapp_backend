@@ -8,13 +8,24 @@ const {
 	resendOtp,
 	updateUserProfile,
 	addReviewToServiceProvider,
+	updateUserDetails,
+	updateProfilePic,
+	updateHisWork,
+	getUserProfileData,
+getServiceProvidersByCategoryAndSubcategory,
+
 } = require("../controllers/userControllers.js");
 
 userRoutes.route("/register").post(registerUser);
 userRoutes.route("/verifyOtp").post(verifyOtp);
 userRoutes.route("/resend-otp").post(resendOtp);
 userRoutes.route("/updateUserProfile").put(protect, updateUserProfile);
-userRoutes.route("/add-review").post(protect, Authorization(["user"]), addReviewToServiceProvider);
+userRoutes.route("/add-review").post(protect, Authorization(["user", "both"]), addReviewToServiceProvider);
+userRoutes.route("/updateUserDetails").put(protect, updateUserDetails);
+userRoutes.route("/updateProfilePic").put(protect, updateProfilePic);
+userRoutes.route("/updateHisWork").put(protect, Authorization(["service_provider", "both"]), updateHisWork);
+userRoutes.route("/getUserProfileData").get(protect, getUserProfileData);
+userRoutes.route("/getServiceProviders").post(protect, Authorization(["user", "both"]), getServiceProvidersByCategoryAndSubcategory);
 
 
 module.exports = { userRoutes };
