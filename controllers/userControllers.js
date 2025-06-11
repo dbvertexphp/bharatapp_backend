@@ -587,6 +587,7 @@ const getUserProfileData = async (req, res) => {
       customerReview: customerReview,
       totalReview: user.totalReview, // virtual field
       rating: user.rating, // virtual field
+			bankdetail : user.bankdetails,
     };
 
     res.status(200).json({
@@ -631,6 +632,47 @@ const getServiceProvidersByCategoryAndSubcategory = async (req, res) => {
   }
 };
 
+const updateBankDetails = async (req, res) => {
+  try {
+   const userId = req.headers.userID;
+    const {
+      accountNumber,
+      accountHolderName,
+      bankName,
+      ifscCode,
+      upiId,
+    } = req.body;
+
+    // Construct bank details object
+    const bankDetails = {
+      accountNumber,
+      accountHolderName,
+      bankName,
+      ifscCode,
+      upiId,
+    };
+
+    // Update user with new bank details (replace or add)
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { bankdetails: bankDetails },
+      { new: true, upsert: false } // upsert false since user must already exist
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ status: false, message: "User not found" });
+    }
+
+    res.status(200).json({
+      status: true,
+      message: "Bank details updated successfully",
+      data: updatedUser.bankdetails,
+    });
+  } catch (error) {
+    console.error("Error updating bank details:", error);
+    res.status(500).json({ status: false, message: "Server error" });
+  }
+};
 
 module.exports = {
   registerUser,
@@ -643,4 +685,5 @@ module.exports = {
   updateHisWork,
   getUserProfileData,
 	getServiceProvidersByCategoryAndSubcategory,
+	updateBankDetails,
 };

@@ -32,6 +32,13 @@ const userSchema = new mongoose.Schema(
     verified: { type: Boolean, default: false },
     current_token: { type: String, default: null },
     isProfileComplete: { type: Boolean, default: false },
+    bankdetails: {
+      accountNumber: String,
+      accountHolderName: String,
+      bankName: String,
+      ifscCode: String,
+      upiId: String,
+    },
 
     // Role
     role: {
