@@ -105,7 +105,7 @@ exports.adminAllDashboardCount = async (req, res) => {
       totalSeller,
     ] = await Promise.all([
       User.countDocuments({ role: "user" }),
-      User.countDocuments({ role: "business" })
+      User.countDocuments({ role: "service_provider" })
     ]);
     return res.json({
       success: true,
@@ -159,6 +159,43 @@ exports.getAllUsers = async (req, res) => {
 };
 
 
+exports.getAllServiceProvider = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
+
+    const query = {
+      role: "service_provider",
+      $or: [
+        { full_name: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } }
+      ],
+    };
+
+    const totalUsers = await User.countDocuments(query);
+    const users = await User.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      message: "Users fetched successfully",
+      users,
+      totalUsers,
+      totalPages: Math.ceil(totalUsers / limit),
+      currentPage: page,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error.message,
+    });
+  }
+};
+
 exports.updateUserStatus = async (req, res, next) => {
   const { userId, active } = req.body;
   // console.log("req", req.body);
@@ -189,3 +226,32 @@ exports.updateUserStatus = async (req, res, next) => {
   });
 };
 
+exports.updateUserverified = async (req, res, next) => {
+  const { userId, verified } = req.body;
+  // console.log("req", req.body);
+
+  if (!userId || typeof verified !== "boolean") {
+    return next(
+      new ErrorHandler("User ID and active status are required.", 400)
+    );
+  }
+
+  const user = await User.findById(userId);
+
+  if (!user) {
+    return next(new ErrorHandler("User not found.", 404));
+  }
+
+  user.verified = verified;
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: `User ${verified ? "enabled" : "disabled"} successfully.`,
+    user: {
+      _id: user._id,
+      full_name: user.full_name,
+      verified: user.verified,
+    },
+  });
+};
