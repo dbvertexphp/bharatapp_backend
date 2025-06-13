@@ -215,6 +215,7 @@ const addReviewToServiceProvider = async (req, res, next) => {
   });
 };
 
+
 const updateUserDetails = async (req, res) => {
   req.uploadPath = "uploads/document";
 
@@ -228,63 +229,58 @@ const updateUserDetails = async (req, res) => {
     }
 
     try {
-      const userId = req.headers.userID; // Case-sensitive, ensure client sends 'userID'
+      const userId = req.headers.userID;
       const { category_id, subcategory_ids, skill } = req.body;
 
-      // Prepare documents field with uploaded file path
-      let documents = [];
-      if (req.file) {
-        documents = req.file.path; // Store the path of the uploaded file
-      }
+      // Build update object dynamically
+      const updateData = {};
 
-      // Parse and validate subcategory_ids
-      let parsedSubcategoryIds = [];
+      if (category_id) updateData.category_id = category_id;
+
+      // Handle subcategory_ids parsing and validation
       if (subcategory_ids) {
-        try {
-          // If subcategory_ids is a string, parse it as JSON
-          parsedSubcategoryIds =
-            typeof subcategory_ids === "string"
-              ? JSON.parse(subcategory_ids)
-              : subcategory_ids;
+        let parsedSubcategoryIds =
+          typeof subcategory_ids === "string"
+            ? JSON.parse(subcategory_ids)
+            : subcategory_ids;
 
-          // Ensure it's an array
-          if (!Array.isArray(parsedSubcategoryIds)) {
-            return res.status(400).json({
-              status: false,
-              message: "subcategory_ids must be an array",
-            });
-          }
-
-          // Validate each ID as a valid ObjectId
-          for (const id of parsedSubcategoryIds) {
-            if (!mongoose.isValidObjectId(id)) {
-              return res.status(400).json({
-                status: false,
-                message: `Invalid ObjectId in subcategory_ids: ${id}`,
-              });
-            }
-          }
-        } catch (parseError) {
-          console.error("Parse error for subcategory_ids:", parseError);
+        if (!Array.isArray(parsedSubcategoryIds)) {
           return res.status(400).json({
             status: false,
-            message:
-              "Invalid format for subcategory_ids. Expected a JSON array of valid ObjectIds",
+            message: "subcategory_ids must be an array",
           });
         }
+
+        for (const id of parsedSubcategoryIds) {
+          if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+              status: false,
+              message: `Invalid ObjectId in subcategory_ids: ${id}`,
+            });
+          }
+        }
+
+        updateData.subcategory_ids = parsedSubcategoryIds;
       }
 
-      // Update user details
-      const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        {
-          category_id,
-          subcategory_ids: parsedSubcategoryIds, // Use parsed and validated array
-          skill,
-          documents,
-        },
-        { new: true } // Returns the updated document
-      );
+      if (skill) updateData.skill = skill;
+
+      // If file is uploaded, add to update data
+      if (req.file) {
+        updateData.documents = req.file.path;
+      }
+
+      // If no valid update fields are provided
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({
+          status: false,
+          message: "No valid fields provided for update",
+        });
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+        new: true,
+      });
 
       if (!updatedUser) {
         return res
@@ -304,59 +300,6 @@ const updateUserDetails = async (req, res) => {
   });
 };
 
-// const updateProfilePic = async (req, res) => {
-//    req.uploadPath = "uploads/profile";
-
-//   upload.single("profilePic")(req, res, async (err) => {
-//     if (err) {
-//       console.error("Multer error:", err);
-//       return res.status(400).json({
-//         status: false,
-//         message: err.message || "File upload failed",
-//       });
-//     }
-
-//     try {
-//       const userId = req.headers.userID; // Case-sensitive, ensure client sends 'userID'
-
-//       // Check if file was uploaded
-//       if (!req.file) {
-//         return res.status(400).json({
-//           status: false,
-//           message: "No profile picture uploaded",
-//         });
-//       }
-
-//       // Update user with new profile picture path
-//       const updatedUser = await User.findByIdAndUpdate(
-//         userId,
-//         {
-//           profile_pic: req.file.path, // Store the file path in the profilePic field
-//         },
-//         { new: true } // Returns the updated document
-//       );
-
-//       if (!updatedUser) {
-//         return res.status(404).json({
-//           status: false,
-//           message: "User not found",
-//         });
-//       }
-
-//       res.status(200).json({
-//         status: true,
-//         message: "Profile picture updated successfully",
-//         data: updatedUser,
-//       });
-//     } catch (error) {
-//       console.error("Update error:", error);
-//       res.status(500).json({
-//         status: false,
-//         message: "Internal server error",
-//       });
-//     }
-//   });
-// };
 
 const updateProfilePic = async (req, res) => {
   req.uploadPath = "uploads/profile";
@@ -371,17 +314,18 @@ const updateProfilePic = async (req, res) => {
     }
 
     try {
-      const userId = req.headers.userID; // Case-sensitive, ensure client sends 'userID'
+      const userId = req.headers.userID;
+      const { full_name } = req.body;
 
-      // Check if file was uploaded
-      if (!req.file) {
+      // Check if at least one field is provided
+      if (!req.file && !full_name) {
         return res.status(400).json({
           status: false,
-          message: "No profile picture uploaded",
+          message: "No data provided for update",
         });
       }
 
-      // Find the user to get the current profile picture path
+      // Fetch existing user
       const user = await User.findById(userId);
       if (!user) {
         return res.status(404).json({
@@ -389,34 +333,27 @@ const updateProfilePic = async (req, res) => {
           message: "User not found",
         });
       }
-      if (req.file) {
-        // Delete old image from server
-        if (user.profile_pic) {
-          const oldProfilePic = path.join(__dirname, "..", user.profile_pic);
-          if (fs.existsSync(oldProfilePic)) {
-            fs.unlinkSync(oldProfilePic);
-          }
+
+      // If new image is uploaded, remove old image
+      if (req.file && user.profile_pic) {
+        const oldProfilePicPath = path.join(__dirname, "..", user.profile_pic);
+        if (fs.existsSync(oldProfilePicPath)) {
+          fs.unlinkSync(oldProfilePicPath);
         }
       }
-      // Update user with new profile picture path
-      const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        {
-          profile_pic: req.file.path, // Store the new file path
-        },
-        { new: true } // Returns the updated document
-      );
 
-      if (!updatedUser) {
-        return res.status(404).json({
-          status: false,
-          message: "User not found",
-        });
-      }
+      // Build update data dynamically
+      const updateData = {};
+      if (req.file) updateData.profile_pic = req.file.path;
+      if (full_name) updateData.full_name = full_name;
+
+      const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+        new: true,
+      });
 
       res.status(200).json({
         status: true,
-        message: "Profile picture updated successfully",
+        message: "Profile updated successfully",
         data: updatedUser,
       });
     } catch (error) {
@@ -428,6 +365,7 @@ const updateProfilePic = async (req, res) => {
     }
   });
 };
+
 
 const updateHisWork = async (req, res) => {
   req.uploadPath = "uploads/hiswork";
