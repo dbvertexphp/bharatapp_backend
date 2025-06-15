@@ -123,31 +123,23 @@ exports.adminAllDashboardCount = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search || "";
 
     const query = {
       role: "user",
       $or: [
         { full_name: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } }
+        { phone: { $regex: search, $options: "i" } },
       ],
     };
 
-    const totalUsers = await User.countDocuments(query);
-    const users = await User.find(query)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
+    const users = await User.find(query).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
       message: "Users fetched successfully",
       users,
-      totalUsers,
-      totalPages: Math.ceil(totalUsers / limit),
-      currentPage: page,
+      totalUsers: users.length,
     });
   } catch (error) {
     res.status(500).json({
@@ -161,31 +153,23 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getAllServiceProvider = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search || "";
 
     const query = {
       role: "service_provider",
       $or: [
         { full_name: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } }
+        { phone: { $regex: search, $options: "i" } },
       ],
     };
 
-    const totalUsers = await User.countDocuments(query);
-    const users = await User.find(query)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
+    const users = await User.find(query).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
-      message: "Users fetched successfully",
+      message: "Service providers fetched successfully",
       users,
-      totalUsers,
-      totalPages: Math.ceil(totalUsers / limit),
-      currentPage: page,
+      totalUsers: users.length,
     });
   } catch (error) {
     res.status(500).json({
@@ -195,6 +179,8 @@ exports.getAllServiceProvider = async (req, res) => {
     });
   }
 };
+
+
 
 exports.updateUserStatus = async (req, res, next) => {
   const { userId, active } = req.body;
