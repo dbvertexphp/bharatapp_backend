@@ -181,6 +181,101 @@ exports.acceptOffer = async (req, res) => {
   }
 };
 
+exports.addPaymentStage = async (req, res) => {
+  const { orderId } = req.params;
+  const { description, amount } = req.body;
+
+  const order = await DirectOrder.findById(orderId);
+  if (!order) return res.status(404).json({ message: "Order not found" });
+
+  // Add new stage
+  order.service_payment.payment_history.push({
+    description,
+    amount,
+    status: "pending"
+  });
+
+  // Update totals
+  order.service_payment.total_expected += amount;
+  order.service_payment.remaining_amount += amount;
+
+  await order.save();
+  return res.json({ status: true, message: "Payment stage added", data: order.service_payment });
+};
+
+
+exports.makeServicePayment = async (req, res) => {
+  const { orderId } = req.params;
+  const { payment_id, status = "success", description } = req.body;
+
+  const order = await DirectOrder.findById(orderId);
+  if (!order) return res.status(404).json({ message: "Order not found" });
+
+  // Find matching unpaid stage
+  const item = order.service_payment.payment_history.find(
+    (p) => p.description === description && p.status === "pending"
+  );
+  if (!item) return res.status(400).json({ message: "Pending payment not found" });
+
+  // Update that record
+  item.payment_id = payment_id;
+  item.status = status;
+
+  // Only update if paid successfully
+  if (status === "success") {
+    order.service_payment.amount += item.amount;
+    order.service_payment.remaining_amount = order.service_payment.total_expected - order.service_payment.amount;
+    order.service_payment.type = order.service_payment.amount >= order.service_payment.total_expected ? "full" : "partial";
+  }
+
+  await order.save();
+  return res.json({ status: true, message: "Payment updated", data: order.service_payment });
+};
+
+
+
+
+// exports.makeServicePayment = async (req, res) => {
+//   try {
+//     const { orderId } = req.params;
+//     const { amount, payment_id, status = "success", description = "" } = req.body;
+
+//     if (!amount || !payment_id) {
+//       return res.status(400).json({ status: false, message: "Amount and payment_id are required." });
+//     }
+
+//     const order = await DirectOrder.findById(orderId);
+//     if (!order) {
+//       return res.status(404).json({ status: false, message: "Order not found" });
+//     }
+
+//     const previousAmount = order.service_payment.amount || 0;
+//     const totalExpected = order.service_payment.total_expected || 0;
+//     const newAmount = previousAmount + amount;
+
+//     order.service_payment.amount = newAmount;
+//     order.service_payment.remaining_amount = Math.max(0, totalExpected - newAmount);
+//     order.service_payment.type = newAmount >= totalExpected ? "full" : "partial";
+
+//     order.service_payment.payment_history.push({
+//       amount,
+//       payment_id,
+//       status,
+//       description, // ✅ description saved here
+//     });
+
+//     await order.save();
+
+//     return res.status(200).json({
+//       status: true,
+//       message: "Payment updated successfully",
+//       data: order.service_payment,
+//     });
+//   } catch (err) {
+//     console.error("Payment error:", err);
+//     return res.status(500).json({ status: false, message: "Server error", error: err.message });
+//   }
+// };
 
 
 exports.assignWorker = async (req, res) => {

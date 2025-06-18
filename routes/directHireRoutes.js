@@ -10,5 +10,11 @@ directHireRoutes.route("/reject-offer").post(protect, Authorization(["service_pr
 directHireRoutes.route("/send-next-offer").post(protect, Authorization(["user"]), directHireController.sendToNextProvider);
 directHireRoutes.route("/accept-offer").post(protect, Authorization(["service_provider"]), directHireController.acceptOffer);
 
+// Order Payments
+
+directHireRoutes.route("/order/:orderId/payment-stage").post(protect, Authorization(["user"]), directHireController.addPaymentStage);
+directHireRoutes.route("/order/:orderId/pay").post(protect, Authorization(["user"]), directHireController.makeServicePayment);
+
+
 module.exports = { directHireRoutes };
 

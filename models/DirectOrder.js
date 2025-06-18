@@ -4,13 +4,13 @@ const directOrderSchema = new mongoose.Schema(
   {
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     service_provider_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-	 offer_history: [
-    {
-      provider_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      status: { type: String, enum: ["pending", "rejected", "accepted"] },
-      rejected_at: Date,
-    },
-  ],
+    offer_history: [
+      {
+        provider_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        status: { type: String, enum: ["pending", "rejected", "accepted"] },
+        rejected_at: Date,
+      },
+    ],
     title: { type: String, required: true },
     description: { type: String },
     address: { type: String, required: true },
@@ -34,21 +34,22 @@ const directOrderSchema = new mongoose.Schema(
       description: String,
       document_url: String,
     },
-    razorOrderIdService: String,
     service_payment: {
-      amount: { type: Number, default: 0 }, // amount paid so far
-      type: { type: String, enum: ["partial", "full"]},
-      total_expected: { type: Number }, // total cost expected
-      remaining_amount: { type: Number, default: 0 }, // remaining amount
+      amount: { type: Number, default: 0 }, // total paid so far
+      type: { type: String, enum: ["partial", "full"] }, // payment type
+      total_expected: { type: Number, default: 0 }, // total cost
+      remaining_amount: { type: Number, default: 0 }, // still to pay
       payment_history: [
+        // each payment stage
         {
           amount: Number,
           date: { type: Date, default: Date.now },
-          payment_id: String, // Razorpay or other gateway payment ID
+          payment_id: String,
+          description: String,
           status: {
             type: String,
-            enum: ["success", "failed"],
-            default: "success",
+            enum: ["success", "failed", "pending"],
+            default: "pending",
           },
         },
       ],
