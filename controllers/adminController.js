@@ -16,6 +16,7 @@ const { generateToken, blacklistToken } = require("../config/generateToken.js");
 
 const Admin = require("../models/Admin.js");
 const  User  = require("../models/User.js");
+const DirectOrder = require("../models/DirectOrder.js");
 
 exports.registerAdmin = async (req, res) => {
   try {
@@ -103,15 +104,19 @@ exports.adminAllDashboardCount = async (req, res) => {
     const [
       totalUsers,
       totalSeller,
+      totalDirectOrder
     ] = await Promise.all([
       User.countDocuments({ role: "user" }),
-      User.countDocuments({ role: "service_provider" })
+      User.countDocuments({ role: "service_provider" }),
+      DirectOrder.countDocuments({ platform_fee_paid: true })
     ]);
+
     return res.json({
       success: true,
       data: {
         totalUsers,
         totalSeller,
+        totalDirectOrder
       },
     });
   } catch (err) {

@@ -24,7 +24,8 @@ exports.createDirectOrder = async (req, res) => {
 		}
 
   try {
-		 const user_id = req.headers.userId;
+		 const user_id = req.headers.userID;
+		 console.log("uuuu", user_id );
     const {title, description, address, deadline, first_provider_id } = req.body;
     const platformAmount = await PlatformFee.findOne({ type: "direct" });
     if (!platformAmount) {
@@ -276,6 +277,28 @@ exports.makeServicePayment = async (req, res) => {
 //     return res.status(500).json({ status: false, message: "Server error", error: err.message });
 //   }
 // };
+
+exports.getAllDirectOrders = async (req, res) => {
+  try {
+    const orders = await DirectOrder.find({ platform_fee_paid: true })
+      .populate('user_id', 'name') // replace 'user_id' with actual field if different
+      .populate('service_provider_id', 'name');
+
+    return res.json({
+      status: true,
+      message: "Paid direct orders fetched successfully",
+      data: orders
+    });
+  } catch (err) {
+    console.error("Error fetching paid direct orders:", err);
+    return res.status(500).json({
+      status: false,
+      message: "Server error while fetching paid direct orders"
+    });
+  }
+};
+
+
 
 
 exports.assignWorker = async (req, res) => {

@@ -14,6 +14,7 @@ directHireRoutes.route("/accept-offer").post(protect, Authorization(["service_pr
 
 directHireRoutes.route("/order/:orderId/payment-stage").post(protect, Authorization(["user"]), directHireController.addPaymentStage);
 directHireRoutes.route("/order/:orderId/pay").post(protect, Authorization(["user"]), directHireController.makeServicePayment);
+directHireRoutes.route("/getAllDirectOrders").get(directHireController.getAllDirectOrders);
 
 
 module.exports = { directHireRoutes };
