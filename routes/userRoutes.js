@@ -14,6 +14,7 @@ const {
 	getUserProfileData,
 getServiceProvidersByCategoryAndSubcategory,
 updateBankDetails,
+getServiceProvider
 
 } = require("../controllers/userControllers.js");
 
@@ -28,5 +29,6 @@ userRoutes.route("/updateHisWork").put(protect, Authorization(["service_provider
 userRoutes.route("/getUserProfileData").get(protect, getUserProfileData);
 userRoutes.route("/getServiceProviders").post(protect, Authorization(["user", "both"]), getServiceProvidersByCategoryAndSubcategory);
 userRoutes.route("/updateBankDetails").put(protect, updateBankDetails);
+userRoutes.route("/getServiceProvider/:id").get(getServiceProvider);
 
 module.exports = { userRoutes };

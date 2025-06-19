@@ -9,7 +9,8 @@ directHireRoutes.route("/verify-platform-payment").post(protect, Authorization([
 directHireRoutes.route("/reject-offer").post(protect, Authorization(["service_provider"]), directHireController.rejectOffer);
 directHireRoutes.route("/send-next-offer").post(protect, Authorization(["user"]), directHireController.sendToNextProvider);
 directHireRoutes.route("/accept-offer").post(protect, Authorization(["service_provider"]), directHireController.acceptOffer);
-
+directHireRoutes.route("/completeOrderProvider").post(protect, Authorization(["service_provider"]), directHireController.completeOrderServiceProvider);
+directHireRoutes.route("/completeOrderUser").post(protect, Authorization(["user"]), directHireController.completeOrderUser);
 // Order Payments
 
 directHireRoutes.route("/order/:orderId/payment-stage").post(protect, Authorization(["user"]), directHireController.addPaymentStage);

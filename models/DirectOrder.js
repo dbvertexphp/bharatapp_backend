@@ -29,6 +29,11 @@ const directOrderSchema = new mongoose.Schema(
       enum: ["pending", "accepted", "rejected", "completed", "cancelled"],
       default: "pending",
     },
+		user_status:{
+			type:String,
+			enum:["completed", "cancelled"],
+			default: null,
+		},
     assigned_worker: {
       name: String,
       description: String,

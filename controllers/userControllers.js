@@ -612,6 +612,46 @@ const updateBankDetails = async (req, res) => {
   }
 };
 
+
+const getServiceProvider = async (req, res) => {
+  try {
+    const serviceProviderId = req.params.id; // or req.query.id or req.body.id
+
+    if (!serviceProviderId) {
+      return res.status(400).json({
+        success: false,
+        message: "Service provider ID is required",
+      });
+    }
+
+    const user = await User.findOne({
+      _id: serviceProviderId,
+      role: "service_provider",
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Service provider not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Service provider fetched successfully",
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error.message,
+    });
+  }
+};
+
+
+
 module.exports = {
   registerUser,
   verifyOtp,
@@ -624,4 +664,5 @@ module.exports = {
   getUserProfileData,
 	getServiceProvidersByCategoryAndSubcategory,
 	updateBankDetails,
+	getServiceProvider,
 };

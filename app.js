@@ -16,6 +16,7 @@ const { workCategoryRoutes } = require("./routes/workCatergoryRoutes.js");
 const { workSubCategoryRoutes } = require("./routes/workSubCategoryRoutes.js");
 const { platformFeeRoutes } = require("./routes/platformFeeRoutes.js");
 const { directHireRoutes } = require("./routes/directHireRoutes.js");
+const { disputeRoutes } = require("./routes/disputeRoutes.js");
 // end 
 
 connectDB();
@@ -45,6 +46,7 @@ app.use("/api/CompanyDetails", companyDetails);
 app.use("/api", faqRoutes);
 app.use("/api", platformFeeRoutes);
 app.use("/api/direct-order", directHireRoutes);
+app.use("/api/dispute", disputeRoutes);
 
 
     // --------------------------deploymentssssss------------------------------

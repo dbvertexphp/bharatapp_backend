@@ -233,56 +233,32 @@ exports.makeServicePayment = async (req, res) => {
   return res.json({ status: true, message: "Payment updated", data: order.service_payment });
 };
 
+exports.completeOrderServiceProvider = async (req, res) => {
+  try {
+    const { order_id } = req.body;
+    await DirectOrder.findByIdAndUpdate(order_id, { hire_status: "completed" });
+    res.json({ message: "Order marked as completed" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
+exports.completeOrderUser = async (req, res) => {
+  try {
+    const { order_id } = req.body;
+    await DirectOrder.findByIdAndUpdate(order_id, { user_status: "completed" });
+    res.json({ message: "Order marked as completed" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
-
-// exports.makeServicePayment = async (req, res) => {
-//   try {
-//     const { orderId } = req.params;
-//     const { amount, payment_id, status = "success", description = "" } = req.body;
-
-//     if (!amount || !payment_id) {
-//       return res.status(400).json({ status: false, message: "Amount and payment_id are required." });
-//     }
-
-//     const order = await DirectOrder.findById(orderId);
-//     if (!order) {
-//       return res.status(404).json({ status: false, message: "Order not found" });
-//     }
-
-//     const previousAmount = order.service_payment.amount || 0;
-//     const totalExpected = order.service_payment.total_expected || 0;
-//     const newAmount = previousAmount + amount;
-
-//     order.service_payment.amount = newAmount;
-//     order.service_payment.remaining_amount = Math.max(0, totalExpected - newAmount);
-//     order.service_payment.type = newAmount >= totalExpected ? "full" : "partial";
-
-//     order.service_payment.payment_history.push({
-//       amount,
-//       payment_id,
-//       status,
-//       description, // ✅ description saved here
-//     });
-
-//     await order.save();
-
-//     return res.status(200).json({
-//       status: true,
-//       message: "Payment updated successfully",
-//       data: order.service_payment,
-//     });
-//   } catch (err) {
-//     console.error("Payment error:", err);
-//     return res.status(500).json({ status: false, message: "Server error", error: err.message });
-//   }
-// };
 
 exports.getAllDirectOrders = async (req, res) => {
   try {
     const orders = await DirectOrder.find({ platform_fee_paid: true })
-      .populate('user_id', 'name') // replace 'user_id' with actual field if different
-      .populate('service_provider_id', 'name');
+      .populate('user_id', 'full_name') // replace 'user_id' with actual field if different
+      .populate('service_provider_id', 'full_name');
 
     return res.json({
       status: true,
@@ -301,77 +277,20 @@ exports.getAllDirectOrders = async (req, res) => {
 
 
 
-exports.assignWorker = async (req, res) => {
-  try {
-    const { order_id, name, description, document_url } = req.body;
+// exports.assignWorker = async (req, res) => {
+//   try {
+//     const { order_id, name, description, document_url } = req.body;
 
-    await DirectOrder.findByIdAndUpdate(order_id, {
-      assigned_worker: { name, description, document_url }
-    });
+//     await DirectOrder.findByIdAndUpdate(order_id, {
+//       assigned_worker: { name, description, document_url }
+//     });
 
-    res.json({ message: "Worker assigned successfully" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+//     res.json({ message: "Worker assigned successfully" });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 
-exports.completeOrder = async (req, res) => {
-  try {
-    const { order_id } = req.body;
-    await DirectOrder.findByIdAndUpdate(order_id, { hire_status: "completed" });
-    res.json({ message: "Order marked as completed" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
 
-exports.addServicePayment = async (req, res) => {
-  try {
-    const { orderId, amount, payment_id, status = "success" } = req.body;
 
-    // Fetch the order
-    const order = await DirectOrder.findById(orderId);
-    if (!order) return res.status(404).json({ message: "Order not found" });
 
-    // Initialize if needed
-    if (!order.service_payment) {
-      return res.status(400).json({ message: "Service payment not initialized in this order." });
-    }
-
-    // Update payment history
-    order.service_payment.payment_history = order.service_payment.payment_history || [];
-    order.service_payment.payment_history.push({
-      amount,
-      payment_id,
-      status,
-    });
-
-    // Update total paid
-    order.service_payment.amount = (order.service_payment.amount || 0) + amount;
-
-    // Update remaining
-    const totalExpected = order.service_payment.total_expected || 0;
-    order.service_payment.remaining_amount = Math.max(
-      totalExpected - order.service_payment.amount,
-      0
-    );
-
-    // Update type
-    if (order.service_payment.remaining_amount === 0) {
-      order.service_payment.type = "full";
-    } else {
-      order.service_payment.type = "partial";
-    }
-
-    await order.save();
-
-    return res.status(200).json({
-      message: "Payment recorded successfully",
-      service_payment: order.service_payment,
-    });
-
-  } catch (err) {
-    console.error("Add Service Payment Error:", err);
-    return res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
