@@ -46,6 +46,9 @@ exports.createDirectOrder = async (req, res) => {
     });
 
     // Save DirectOrder
+		// Generate random 7-digit project_id
+const project_id = "#" + Math.floor(1000000 + Math.random() * 9000000); // ensures 7 digits
+
     const order = await DirectOrder.create({
       user_id,
       title,
@@ -53,6 +56,7 @@ exports.createDirectOrder = async (req, res) => {
       address,
       deadline,
       image_url,
+			project_id,
 			 offer_history: [{
       provider_id: first_provider_id,
       status: "pending"
@@ -78,18 +82,8 @@ exports.createDirectOrder = async (req, res) => {
 
 exports.verifyPlatformPayment = async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, } = req.body;
 
-    // const generated_signature = crypto
-    //   .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-    //   .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-    //   .digest("hex");
-
-    // if (generated_signature !== razorpay_signature) {
-    //   return res.status(400).json({ message: "Invalid payment signature" });
-    // }
-
-    // Find the order in DB
     const order = await DirectOrder.findOne({ razorOrderIdPlatform: razorpay_order_id });
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -98,7 +92,7 @@ exports.verifyPlatformPayment = async (req, res) => {
     // Update platform fee status
     order.platform_fee_paid = true;
     order.payment_status = "success";
-    order.razorpay_payment_id = razorpay_payment_id;
+    order.razorPaymentIdPlatform = razorpay_payment_id;
 
     await order.save();
 
@@ -273,6 +267,45 @@ exports.getAllDirectOrders = async (req, res) => {
     });
   }
 };
+
+exports.getAllDirectOrdersApi = async (req, res) => {
+  try {
+    const userId = req.headers.userID;
+    const role = req.headers.role;
+
+    let query = { platform_fee_paid: true };
+
+    if (role === "user" || role === "both") {
+      // Show orders created by the user
+      query.user_id = userId;
+    } else if (role === "service_provider" || role === "both") {
+      // Show orders where the service provider has made an offer
+      query.service_provider_id = userId;
+    } else {
+      return res.status(403).json({
+        status: false,
+        message: "Unauthorized role",
+      });
+    }
+
+    const orders = await DirectOrder.find(query)
+      .populate("user_id", "full_name")
+      .populate("service_provider_id", "full_name");
+
+    return res.json({
+      status: true,
+      message: "Direct orders fetched successfully",
+      data: orders,
+    });
+  } catch (err) {
+    console.error("Error fetching direct orders:", err);
+    return res.status(500).json({
+      status: false,
+      message: "Server error while fetching direct orders",
+    });
+  }
+};
+
 
 
 

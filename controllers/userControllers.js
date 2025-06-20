@@ -626,7 +626,7 @@ const getServiceProvider = async (req, res) => {
 
     const user = await User.findOne({
       _id: serviceProviderId,
-      role: "service_provider",
+      role: ["service_provider", "both"],
     });
 
     if (!user) {
@@ -650,6 +650,42 @@ const getServiceProvider = async (req, res) => {
   }
 };
 
+const getUser = async (req, res) => {
+  try {
+    const userId = req.params.id; // or req.query.id or req.body.id
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const user = await User.findOne({
+      _id: userId,
+      role: ["user", "both"],
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "User fetched successfully",
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error.message,
+    });
+  }
+};
 
 
 module.exports = {
@@ -665,4 +701,5 @@ module.exports = {
 	getServiceProvidersByCategoryAndSubcategory,
 	updateBankDetails,
 	getServiceProvider,
+	getUser,
 };

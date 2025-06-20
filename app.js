@@ -17,7 +17,8 @@ const { workSubCategoryRoutes } = require("./routes/workSubCategoryRoutes.js");
 const { platformFeeRoutes } = require("./routes/platformFeeRoutes.js");
 const { directHireRoutes } = require("./routes/directHireRoutes.js");
 const { disputeRoutes } = require("./routes/disputeRoutes.js");
-// end 
+const { workerRoutes } = require("./routes/workerRoutes");
+// end
 
 connectDB();
 const app = express();
@@ -29,15 +30,14 @@ app.use("/uploads", express.static("uploads"));
 app.use(express.json());
 
 const corsOptions = {
-	origin: (origin, callback) => {
-		callback(null, true);
-	},
-  };
-  
-  app.use(cors(corsOptions));
+  origin: (origin, callback) => {
+    callback(null, true);
+  },
+};
 
+app.use(cors(corsOptions));
 
-  //***********************  Define Routes************************* */
+//***********************  Define Routes************************* */
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api", workCategoryRoutes);
@@ -47,42 +47,43 @@ app.use("/api", faqRoutes);
 app.use("/api", platformFeeRoutes);
 app.use("/api/direct-order", directHireRoutes);
 app.use("/api/dispute", disputeRoutes);
+app.use("/api/worker", workerRoutes);
 
-
-    // --------------------------deploymentssssss------------------------------
+// --------------------------deploymentssssss------------------------------
 
 if (process.env.NODE_ENV == "production") {
-	app.use(express.static(path.join(__dirname1, "/view")));
-  
-	app.get("*", (req, res) => res.sendFile(path.resolve(__dirname1, "view", "index.html")));
-  } else {
-	app.get("/", (req, res) => {
-	  res.send("API is running..");
-	});
-  }
+  app.use(express.static(path.join(__dirname1, "/view")));
 
-   // --------------------------deployment------------------------------
-  
-  // Error handling middleware
-  app.use((err, req, res, next) => {
-	const statusCode = err.statusCode || 500;
-	res.status(statusCode).json({
-	  message: err.message || "Internal Server Error",
-	  status: false,
-	});
+  app.get("*", (req, res) =>
+    res.sendFile(path.resolve(__dirname1, "view", "index.html"))
+  );
+} else {
+  app.get("/", (req, res) => {
+    res.send("API is running..");
   });
-  
-  // Error Handling middlewares
-  app.use(notFound);
-  app.use(errorHandler);
-  app.use(bodyParser.json({ limit: "100mb" }));
-  app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
-  
-  const PORT = process.env.PORT;
-  const BASE_URL = process.env.BASE_URL;
-  
-  const server = app.listen(PORT, () => {
-	console.log(`Server running on PORT ${PORT}...`);
-	console.log(`Base URL: ${BASE_URL}`);
+}
+
+// --------------------------deployment------------------------------
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({
+    message: err.message || "Internal Server Error",
+    status: false,
   });
- 
+});
+
+// Error Handling middlewares
+app.use(notFound);
+app.use(errorHandler);
+app.use(bodyParser.json({ limit: "100mb" }));
+app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
+
+const PORT = process.env.PORT;
+const BASE_URL = process.env.BASE_URL;
+
+const server = app.listen(PORT, () => {
+  console.log(`Server running on PORT ${PORT}...`);
+  console.log(`Base URL: ${BASE_URL}`);
+});

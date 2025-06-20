@@ -88,8 +88,8 @@ exports.createDispute = async (req, res) => {
 exports.getAllDisputes = async (req, res) => {
   try {
     const disputes = await Dispute.find()
-      .populate("raised_by", "name email")
-      .populate("against", "name email");
+      .populate("raised_by", "full_name phone")
+      .populate("against", "full_name phone");
 
     res.status(200).json({ success: true, disputes });
   } catch (error) {
