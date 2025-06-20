@@ -170,14 +170,32 @@ exports.assignOrderToWorker = async (req, res) => {
       });
     }
 
-    // Validate type
     const allowedTypes = ["direct", "bidding", "emergency"];
     if (!allowedTypes.includes(type)) {
-      return res.status(400).json({ success: false, message: "Invalid order type" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order type",
+      });
+    }
+
+    // Fetch worker and validate status
+    const worker = await Worker.findById(worker_id);
+    if (!worker) {
+      return res.status(404).json({
+        success: false,
+        message: "Worker not found",
+      });
+    }
+
+    if (worker.verifyStatus !== "approved") {
+      return res.status(400).json({
+        success: false,
+        message: "You are not approved by admin",
+      });
     }
 
     // Add assignment to worker
-    const worker = await Worker.findByIdAndUpdate(
+    const updatedWorker = await Worker.findByIdAndUpdate(
       worker_id,
       {
         $addToSet: {
@@ -190,17 +208,14 @@ exports.assignOrderToWorker = async (req, res) => {
       { new: true }
     );
 
-    if (!worker) {
-      return res.status(404).json({ success: false, message: "Worker not found" });
-    }
-
     res.status(200).json({
       success: true,
       message: "Order assigned to worker successfully",
-      worker,
+      worker: updatedWorker,
     });
   } catch (err) {
     console.error("Error assigning order:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
