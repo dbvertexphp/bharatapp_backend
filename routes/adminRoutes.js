@@ -10,6 +10,7 @@ const {
 	updateUserStatus,
 	getAllServiceProvider,
 	updateUserverified,
+	getServiceProvider
 } = require("../controllers/adminController.js");
 
 adminRoutes.route("/register").post(registerAdmin);
@@ -19,7 +20,7 @@ adminRoutes.route("/getAllUsers").get(AdminProtect, Authorization(["admin"]), ge
 adminRoutes.route("/getAllServiceProvider").get(AdminProtect, Authorization(["admin"]), getAllServiceProvider);
 adminRoutes.route("/updateUserStatus").patch(AdminProtect, Authorization(["admin"]), updateUserStatus);
 adminRoutes.route("/updateUserverified").patch(AdminProtect, Authorization(["admin"]), updateUserverified);
-
+adminRoutes.route("/getServiceProvider/:id").get( getServiceProvider);
 
 
 

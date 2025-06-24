@@ -6,6 +6,7 @@ const razorpay = require("../config/razorpay.js");
 const upload = require("../middleware/uploadMiddleware.js");
 const Worker = require("../models/worker");
 const mongoose = require("mongoose");
+const User = require("../models/User.js");
 
 // const razorpay = new Razorpay({
 //   key_id: process.env.RAZORPAY_KEY_ID,
@@ -26,7 +27,12 @@ exports.createDirectOrder = async (req, res) => {
 
     try {
       const user_id = req.headers.userID;
-      console.log("uuuu", user_id);
+      // console.log("uuuu", user_id);
+			const user = await User.findById(user_id);
+			if(user.active === false) {
+				return res.status(403).json({ message: "User is deactivated. Please Contact to Admin" });
+			}
+
       const { title, description, address, deadline, first_provider_id } =
         req.body;
       const platformAmount = await PlatformFee.findOne({ type: "direct" });
@@ -139,7 +145,11 @@ exports.rejectOffer = async (req, res) => {
 
 exports.sendToNextProvider = async (req, res) => {
   const { order_id, next_provider_id } = req.body;
-
+   const user_id = req.headers.userID;
+	 const user = await User.findById(user_id);
+	 if(user.active === false) {
+		 return res.status(403).json({ message: "User is deactivated. Please Contact to Admin" });
+	 }
   const order = await DirectOrder.findById(order_id);
   if (!order) return res.status(404).json({ message: "Order not found" });
 
@@ -194,15 +204,20 @@ exports.acceptOffer = async (req, res) => {
 
 exports.addPaymentStage = async (req, res) => {
   const { orderId } = req.params;
-  const { description, amount } = req.body;
+  const { description, amount, method } = req.body;
+
+  if (!["cod", "online"].includes(method)) {
+    return res.status(400).json({ message: "Invalid payment method. Use 'cod' or 'online'." });
+  }
 
   const order = await DirectOrder.findById(orderId);
   if (!order) return res.status(404).json({ message: "Order not found" });
 
-  // Add new stage
+  // Add new payment stage
   order.service_payment.payment_history.push({
     description,
     amount,
+    method, // <-- add method here
     status: "pending",
   });
 
@@ -211,6 +226,7 @@ exports.addPaymentStage = async (req, res) => {
   order.service_payment.remaining_amount += amount;
 
   await order.save();
+
   return res.json({
     status: true,
     message: "Payment stage added",
@@ -218,42 +234,92 @@ exports.addPaymentStage = async (req, res) => {
   });
 };
 
+
+// exports.makeServicePayment = async (req, res) => {
+//   const { orderId } = req.params;
+//   const { payment_id, status = "success", description } = req.body;
+
+//   const order = await DirectOrder.findById(orderId);
+//   if (!order) return res.status(404).json({ message: "Order not found" });
+
+//   // Find matching unpaid stage
+//   const item = order.service_payment.payment_history.find(
+//     (p) => p.description === description && p.status === "pending"
+//   );
+//   if (!item)
+//     return res.status(400).json({ message: "Pending payment not found" });
+
+//   // Update that record
+//   item.payment_id = payment_id;
+//   item.status = status;
+
+//   // Only update if paid successfully
+//   if (status === "success") {
+//     order.service_payment.amount += item.amount;
+//     order.service_payment.remaining_amount =
+//       order.service_payment.total_expected - order.service_payment.amount;
+//     order.service_payment.type =
+//       order.service_payment.amount >= order.service_payment.total_expected
+//         ? "full"
+//         : "partial";
+//   }
+
+//   await order.save();
+//   return res.json({
+//     status: true,
+//     message: "Payment updated",
+//     data: order.service_payment,
+//   });
+// };
+
+
 exports.makeServicePayment = async (req, res) => {
   const { orderId } = req.params;
-  const { payment_id, status = "success", description } = req.body;
+  const { payment_id, status = "success", description, collected_by } = req.body;
 
   const order = await DirectOrder.findById(orderId);
   if (!order) return res.status(404).json({ message: "Order not found" });
 
-  // Find matching unpaid stage
+  // Find matching pending payment
   const item = order.service_payment.payment_history.find(
     (p) => p.description === description && p.status === "pending"
   );
   if (!item)
     return res.status(400).json({ message: "Pending payment not found" });
 
-  // Update that record
-  item.payment_id = payment_id;
+  // Set status and payment_id
   item.status = status;
+  item.payment_id = payment_id || (item.method === "cod" ? "COD-COLLECTED" : "");
 
-  // Only update if paid successfully
   if (status === "success") {
+    // Update payment totals
     order.service_payment.amount += item.amount;
     order.service_payment.remaining_amount =
       order.service_payment.total_expected - order.service_payment.amount;
+
     order.service_payment.type =
       order.service_payment.amount >= order.service_payment.total_expected
         ? "full"
         : "partial";
+
+    // If COD, update COD-related fields within this payment_history item
+    if (item.method === "cod") {
+      item.is_collected = true;
+      item.collected_by = collected_by || "system";
+      item.collected_at = new Date();
+      item.remarks = `COD payment for "${description}" successfully collected.`;
+    }
   }
 
   await order.save();
+
   return res.json({
     status: true,
     message: "Payment updated",
     data: order.service_payment,
   });
 };
+
 
 exports.completeOrderServiceProvider = async (req, res) => {
   try {

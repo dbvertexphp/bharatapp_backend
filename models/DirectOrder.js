@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const directOrderSchema = new mongoose.Schema(
   {
-		project_id: String,
+    project_id: String,
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     service_provider_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     offer_history: [
@@ -41,26 +41,35 @@ const directOrderSchema = new mongoose.Schema(
       description: String,
       document_url: String,
     },
-    service_payment: {
-      amount: { type: Number, default: 0 }, // total paid so far
-      type: { type: String, enum: ["partial", "full"] }, // payment type
-      total_expected: { type: Number, default: 0 }, // total cost
-      remaining_amount: { type: Number, default: 0 }, // still to pay
-      payment_history: [
-        // each payment stage
-        {
-          amount: Number,
-          date: { type: Date, default: Date.now },
-          payment_id: String,
-          description: String,
-          status: {
-            type: String,
-            enum: ["success", "failed", "pending"],
-            default: "pending",
-          },
-        },
-      ],
+   service_payment: {
+  amount: { type: Number, default: 0 },
+  type: { type: String, enum: ["partial", "full"] },
+  total_expected: { type: Number, default: 0 },
+  remaining_amount: { type: Number, default: 0 },
+  payment_history: [
+    {
+      amount: Number,
+      date: { type: Date, default: Date.now },
+      payment_id: String,
+      description: String,
+      method: {
+        type: String,
+        enum: ["cod", "online"],
+        required: true,
+      },
+      status: {
+        type: String,
+        enum: ["success", "failed", "pending"],
+        default: "pending",
+      },
+      // COD-specific fields
+      is_collected: { type: Boolean, default: false },
+      collected_by: { type: String },
+      collected_at: { type: Date },
+      remarks: { type: String },
     },
+  ],
+}
   },
   { timestamps: true }
 );

@@ -17,6 +17,7 @@ const { generateToken, blacklistToken } = require("../config/generateToken.js");
 const Admin = require("../models/Admin.js");
 const  User  = require("../models/User.js");
 const DirectOrder = require("../models/DirectOrder.js");
+const Worker = require("../models/worker");
 
 exports.registerAdmin = async (req, res) => {
   try {
@@ -245,4 +246,88 @@ exports.updateUserverified = async (req, res, next) => {
       verified: user.verified,
     },
   });
+};
+
+exports.getServiceProvider = async (req, res) => {
+	try {
+		const serviceProviderId = req.params.id;
+
+		if (!serviceProviderId) {
+			return res.status(400).json({
+				success: false,
+				message: "Service provider ID is required",
+			});
+		}
+
+		// Fetch user with category and subcategory populated
+		const user = await User.findOne({
+			_id: serviceProviderId,
+			role: ["service_provider", "both"],
+		})
+			.populate("category_id", "name image")
+			.populate("subcategory_ids", "name image")
+			.lean();
+
+		if (!user) {
+			return res.status(404).json({
+				success: false,
+				message: "Service provider not found",
+			});
+		}
+
+		// Base URL
+		const baseUrl = `${req.protocol}://${req.get("host")}/`;
+
+		// Add base URL to document
+		if (user.documents) {
+			user.documents = baseUrl + user.documents.replace(/\\/g, "/");
+		}
+
+		// Add base URL to hiswork images
+		if (Array.isArray(user.hiswork)) {
+			user.hiswork = user.hiswork.map(img => baseUrl + img.replace(/\\/g, "/"));
+		}
+
+		// Add base URL to rate and review images
+		if (Array.isArray(user.rateAndReviews)) {
+			user.rateAndReviews = user.rateAndReviews.map(review => {
+				if (Array.isArray(review.images)) {
+					review.images = review.images.map(img => baseUrl + img.replace(/\\/g, "/"));
+				}
+				return review;
+			});
+		}
+
+		// Add base URL to category image
+		if (user.category_id?.image) {
+			user.category_id.image = baseUrl + user.category_id.image.replace(/\\/g, "/");
+		}
+
+		// Add base URL to subcategory images
+		if (Array.isArray(user.subcategory_ids)) {
+			user.subcategory_ids = user.subcategory_ids.map(sub => {
+				if (sub.image) {
+					sub.image = baseUrl + sub.image.replace(/\\/g, "/");
+				}
+				return sub;
+			});
+		}
+
+		// Fetch workers under this service provider
+		const workers = await Worker.find({ service_provider_id: serviceProviderId });
+
+		res.status(200).json({
+			success: true,
+			message: "Service provider fetched successfully",
+			user,
+			workers,
+			workerCount: workers.length,
+		});
+	} catch (error) {
+		res.status(500).json({
+			success: false,
+			message: "Something went wrong",
+			error: error.message,
+		});
+	}
 };

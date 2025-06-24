@@ -219,3 +219,47 @@ exports.assignOrderToWorker = async (req, res) => {
   }
 };
 
+exports.verifyWorker = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const { verifyStatus } = req.body;
+
+		const allowedStatuses = ["approved", "rejected", "pending"];
+
+		// Validate verifyStatus
+		if (!verifyStatus || !allowedStatuses.includes(verifyStatus)) {
+			return res.status(400).json({
+				success: false,
+				message: `verifyStatus must be one of: ${allowedStatuses.join(", ")}`,
+			});
+		}
+
+		// Find and update the worker
+		const updatedWorker = await Worker.findByIdAndUpdate(
+			id,
+			{ verifyStatus },
+			{ new: true }
+		);
+
+		if (!updatedWorker) {
+			return res.status(404).json({
+				success: false,
+				message: "Worker not found",
+			});
+		}
+
+		res.status(200).json({
+			success: true,
+			message: `Worker verification status updated to "${verifyStatus}"`,
+			data: updatedWorker,
+		});
+	} catch (error) {
+		console.error("Error verifying worker:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal Server Error",
+			error: error.message,
+		});
+	}
+};
+

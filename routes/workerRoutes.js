@@ -11,6 +11,6 @@ workerRoutes.route("/delete/:id").delete(protect, Authorization(["service_provid
 workerRoutes.route("/get/:id").get(protect, Authorization(["service_provider", "both"]), workerController.getSingleWorker);
 workerRoutes.route("/all").get(protect, Authorization(["service_provider", "both"]), workerController.getAllWorkersByServiceProvider);
 workerRoutes.route("/assign-order").post(protect, Authorization(["service_provider", "both"]), workerController.assignOrderToWorker);
-
+workerRoutes.route("/verify/:id").put(AdminProtect, workerController.verifyWorker);
 
 module.exports = { workerRoutes };

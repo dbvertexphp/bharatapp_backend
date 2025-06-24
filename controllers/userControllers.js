@@ -62,7 +62,6 @@ const verifyOtp = async (req, res) => {
   const { phone, entered_otp } = req.body;
 
   const user = await User.findOne({ phone });
-
   if (!user || user.otp !== entered_otp) {
     return res.status(401).json({ status: false, message: "Invalid OTP" });
   }
@@ -163,7 +162,15 @@ const addReviewToServiceProvider = async (req, res, next) => {
     try {
       const { serviceProviderId, review, rating } = req.body;
       const reviewerId = req.headers.userID;
-
+      const user = await User.findById(reviewerId);
+      if (user.active === false) {
+        return res
+          .status(403)
+          .json({
+            status: false,
+            message: "Your account is inactive. Please contact support.",
+          });
+      }
       if (!serviceProviderId || !review || !rating) {
         return res
           .status(400)
@@ -214,7 +221,6 @@ const addReviewToServiceProvider = async (req, res, next) => {
     }
   });
 };
-
 
 const updateUserDetails = async (req, res) => {
   req.uploadPath = "uploads/document";
@@ -300,7 +306,6 @@ const updateUserDetails = async (req, res) => {
   });
 };
 
-
 const updateProfilePic = async (req, res) => {
   req.uploadPath = "uploads/profile";
 
@@ -366,7 +371,6 @@ const updateProfilePic = async (req, res) => {
   });
 };
 
-
 const updateHisWork = async (req, res) => {
   req.uploadPath = "uploads/hiswork";
 
@@ -431,7 +435,6 @@ const updateHisWork = async (req, res) => {
     }
   });
 };
-
 
 const getUserProfileData = async (req, res) => {
   try {
@@ -525,7 +528,7 @@ const getUserProfileData = async (req, res) => {
       customerReview: customerReview,
       totalReview: user.totalReview, // virtual field
       rating: user.rating, // virtual field
-			bankdetail : user.bankdetails,
+      bankdetail: user.bankdetails,
     };
 
     res.status(200).json({
@@ -547,14 +550,19 @@ const getServiceProvidersByCategoryAndSubcategory = async (req, res) => {
     const { category_id, subcategory_id } = req.body;
 
     if (!category_id || !subcategory_id) {
-      return res.status(400).json({ status: false, message: "category_id and subcategory_id are required" });
+      return res
+        .status(400)
+        .json({
+          status: false,
+          message: "category_id and subcategory_id are required",
+        });
     }
 
     const serviceProviders = await User.find({
       role: "service_provider",
       active: true,
-			verified: true,
-			isProfileComplete: true,
+      verified: true,
+      isProfileComplete: true,
       category_id: new mongoose.Types.ObjectId(category_id),
       subcategory_ids: new mongoose.Types.ObjectId(subcategory_id),
     });
@@ -572,14 +580,9 @@ const getServiceProvidersByCategoryAndSubcategory = async (req, res) => {
 
 const updateBankDetails = async (req, res) => {
   try {
-   const userId = req.headers.userID;
-    const {
-      accountNumber,
-      accountHolderName,
-      bankName,
-      ifscCode,
-      upiId,
-    } = req.body;
+    const userId = req.headers.userID;
+    const { accountNumber, accountHolderName, bankName, ifscCode, upiId } =
+      req.body;
 
     // Construct bank details object
     const bankDetails = {
@@ -612,10 +615,9 @@ const updateBankDetails = async (req, res) => {
   }
 };
 
-
 const getServiceProvider = async (req, res) => {
   try {
-    const serviceProviderId = req.params.id; // or req.query.id or req.body.id
+    const serviceProviderId = req.params.id;
 
     if (!serviceProviderId) {
       return res.status(400).json({
@@ -627,12 +629,57 @@ const getServiceProvider = async (req, res) => {
     const user = await User.findOne({
       _id: serviceProviderId,
       role: ["service_provider", "both"],
-    });
+    })
+      .populate("category_id", "name image") // only fetch name and image
+      .populate("subcategory_ids", "name image") // only fetch name and image
+      .lean();
 
     if (!user) {
       return res.status(404).json({
         success: false,
         message: "Service provider not found",
+      });
+    }
+
+    // Base URL
+    const baseUrl = `${req.protocol}://${req.get("host")}/`;
+
+    // Add base URL to documents
+    if (user.documents) {
+      user.documents = baseUrl + user.documents.replace(/\\/g, "/");
+    }
+
+    // Add base URL to hiswork images
+    if (Array.isArray(user.hiswork)) {
+      user.hiswork = user.hiswork.map(
+        (img) => baseUrl + img.replace(/\\/g, "/")
+      );
+    }
+
+    // Add base URL to rate and review images
+    if (Array.isArray(user.rateAndReviews)) {
+      user.rateAndReviews = user.rateAndReviews.map((review) => {
+        if (Array.isArray(review.images)) {
+          review.images = review.images.map(
+            (img) => baseUrl + img.replace(/\\/g, "/")
+          );
+        }
+        return review;
+      });
+    }
+
+    // Add base URL to category/subcategory images (if any)
+    if (user.category_id?.image) {
+      user.category_id.image =
+        baseUrl + user.category_id.image.replace(/\\/g, "/");
+    }
+
+    if (Array.isArray(user.subcategory_ids)) {
+      user.subcategory_ids = user.subcategory_ids.map((sub) => {
+        if (sub.image) {
+          sub.image = baseUrl + sub.image.replace(/\\/g, "/");
+        }
+        return sub;
       });
     }
 
@@ -687,7 +734,6 @@ const getUser = async (req, res) => {
   }
 };
 
-
 module.exports = {
   registerUser,
   verifyOtp,
@@ -698,8 +744,8 @@ module.exports = {
   updateProfilePic,
   updateHisWork,
   getUserProfileData,
-	getServiceProvidersByCategoryAndSubcategory,
-	updateBankDetails,
-	getServiceProvider,
-	getUser,
+  getServiceProvidersByCategoryAndSubcategory,
+  updateBankDetails,
+  getServiceProvider,
+  getUser,
 };
