@@ -28,10 +28,12 @@ exports.createDirectOrder = async (req, res) => {
     try {
       const user_id = req.headers.userID;
       // console.log("uuuu", user_id);
-			const user = await User.findById(user_id);
-			if(user.active === false) {
-				return res.status(403).json({ message: "User is deactivated. Please Contact to Admin" });
-			}
+      const user = await User.findById(user_id);
+      if (user.active === false) {
+        return res
+          .status(403)
+          .json({ message: "User is deactivated. Please Contact to Admin" });
+      }
 
       const { title, description, address, deadline, first_provider_id } =
         req.body;
@@ -145,11 +147,13 @@ exports.rejectOffer = async (req, res) => {
 
 exports.sendToNextProvider = async (req, res) => {
   const { order_id, next_provider_id } = req.body;
-   const user_id = req.headers.userID;
-	 const user = await User.findById(user_id);
-	 if(user.active === false) {
-		 return res.status(403).json({ message: "User is deactivated. Please Contact to Admin" });
-	 }
+  const user_id = req.headers.userID;
+  const user = await User.findById(user_id);
+  if (user.active === false) {
+    return res
+      .status(403)
+      .json({ message: "User is deactivated. Please Contact to Admin" });
+  }
   const order = await DirectOrder.findById(order_id);
   if (!order) return res.status(404).json({ message: "Order not found" });
 
@@ -207,7 +211,9 @@ exports.addPaymentStage = async (req, res) => {
   const { description, amount, method } = req.body;
 
   if (!["cod", "online"].includes(method)) {
-    return res.status(400).json({ message: "Invalid payment method. Use 'cod' or 'online'." });
+    return res
+      .status(400)
+      .json({ message: "Invalid payment method. Use 'cod' or 'online'." });
   }
 
   const order = await DirectOrder.findById(orderId);
@@ -233,7 +239,6 @@ exports.addPaymentStage = async (req, res) => {
     data: order.service_payment,
   });
 };
-
 
 // exports.makeServicePayment = async (req, res) => {
 //   const { orderId } = req.params;
@@ -272,10 +277,14 @@ exports.addPaymentStage = async (req, res) => {
 //   });
 // };
 
-
 exports.makeServicePayment = async (req, res) => {
   const { orderId } = req.params;
-  const { payment_id, status = "success", description, collected_by } = req.body;
+  const {
+    payment_id,
+    status = "success",
+    description,
+    collected_by,
+  } = req.body;
 
   const order = await DirectOrder.findById(orderId);
   if (!order) return res.status(404).json({ message: "Order not found" });
@@ -289,7 +298,8 @@ exports.makeServicePayment = async (req, res) => {
 
   // Set status and payment_id
   item.status = status;
-  item.payment_id = payment_id || (item.method === "cod" ? "COD-COLLECTED" : "");
+  item.payment_id =
+    payment_id || (item.method === "cod" ? "COD-COLLECTED" : "");
 
   if (status === "success") {
     // Update payment totals
@@ -319,7 +329,6 @@ exports.makeServicePayment = async (req, res) => {
     data: order.service_payment,
   });
 };
-
 
 exports.completeOrderServiceProvider = async (req, res) => {
   try {
@@ -361,6 +370,44 @@ exports.getAllDirectOrders = async (req, res) => {
   }
 };
 
+// exports.getAllDirectOrdersApi = async (req, res) => {
+//   try {
+//     const userId = req.headers.userID;
+//     const role = req.headers.role;
+
+//     let query = { platform_fee_paid: true };
+
+//     if (role === "user" || role === "both") {
+//       // Show orders created by the user
+//       query.user_id = userId;
+//     } else if (role === "service_provider" || role === "both") {
+//       // Show orders where the service provider has made an offer
+//       query.service_provider_id = userId;
+//     } else {
+//       return res.status(403).json({
+//         status: false,
+//         message: "Unauthorized role",
+//       });
+//     }
+
+//     const orders = await DirectOrder.find(query)
+//       .populate("user_id", "full_name")
+//       .populate("service_provider_id", "full_name");
+
+//     return res.json({
+//       status: true,
+//       message: "Direct orders fetched successfully",
+//       data: orders,
+//     });
+//   } catch (err) {
+//     console.error("Error fetching direct orders:", err);
+//     return res.status(500).json({
+//       status: false,
+//       message: "Server error while fetching direct orders",
+//     });
+//   }
+// };
+
 exports.getAllDirectOrdersApi = async (req, res) => {
   try {
     const userId = req.headers.userID;
@@ -369,11 +416,26 @@ exports.getAllDirectOrdersApi = async (req, res) => {
     let query = { platform_fee_paid: true };
 
     if (role === "user" || role === "both") {
-      // Show orders created by the user
       query.user_id = userId;
     } else if (role === "service_provider" || role === "both") {
-      // Show orders where the service provider has made an offer
-      query.service_provider_id = userId;
+      query = {
+        platform_fee_paid: true,
+        $or: [
+          // Case 1: Service provider already assigned
+          { service_provider_id: userId },
+
+          // Case 2: Not assigned yet, check offer history
+          {
+            service_provider_id: { $exists: false },
+            offer_history: {
+              $elemMatch: {
+                provider_id: userId,
+                status: { $in: ["accepted", "rejected", "pending"] },
+              },
+            },
+          },
+        ],
+      };
     } else {
       return res.status(403).json({
         status: false,
@@ -382,8 +444,39 @@ exports.getAllDirectOrdersApi = async (req, res) => {
     }
 
     const orders = await DirectOrder.find(query)
-      .populate("user_id", "full_name")
-      .populate("service_provider_id", "full_name");
+      .populate("user_id", "full_name phone profile_pic")
+      .populate({
+        path: "service_provider_id",
+        select: "full_name phone profile_pic category_id subcategory_ids",
+        populate: [
+          {
+            path: "category_id",
+            model: "WorkCategory",
+            select: "name",
+          },
+          {
+            path: "subcategory_ids",
+            model: "SubCategory",
+            select: "name",
+          },
+        ],
+      })
+      .populate({
+        path: "offer_history.provider_id",
+        select: "full_name phone profile_pic category_id subcategory_ids",
+        populate: [
+          {
+            path: "category_id",
+            model: "WorkCategory",
+            select: "name",
+          },
+          {
+            path: "subcategory_ids",
+            model: "SubCategory",
+            select: "name",
+          },
+        ],
+      });
 
     return res.json({
       status: true,
@@ -399,6 +492,7 @@ exports.getAllDirectOrdersApi = async (req, res) => {
   }
 };
 
+
 exports.getDirectOrderWithWorker = async (req, res) => {
   try {
     const { id } = req.params;
@@ -410,10 +504,41 @@ exports.getDirectOrderWithWorker = async (req, res) => {
       });
     }
 
-    // 1. Fetch the direct order
+    // 1. Fetch the direct order with deep population
     const order = await DirectOrder.findById(id)
-      .populate("user_id", "full_name")
-      .populate("service_provider_id", "full_name");
+      .populate("user_id", "full_name phone profile_pic")
+      .populate({
+        path: "service_provider_id",
+        select: "full_name phone profile_pic category_id subcategory_ids",
+        populate: [
+          {
+            path: "category_id",
+            model: "WorkCategory", // replace with your actual category model name
+            select: "name",
+          },
+          {
+            path: "subcategory_ids",
+            model: "SubCategory",
+            select: "name",
+          },
+        ],
+      })
+      .populate({
+        path: "offer_history.provider_id",
+        select: "full_name phone profile_pic category_id subcategory_ids",
+        populate: [
+          {
+            path: "category_id",
+            model: "WorkCategory",
+            select: "name",
+          },
+          {
+            path: "subcategory_ids",
+            model: "SubCategory",
+            select: "name",
+          },
+        ],
+      });
 
     if (!order) {
       return res.status(404).json({
@@ -448,3 +573,4 @@ exports.getDirectOrderWithWorker = async (req, res) => {
     });
   }
 };
+
