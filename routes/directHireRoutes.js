@@ -14,6 +14,7 @@ directHireRoutes.route("/completeOrderProvider").post(protect, Authorization(["s
 directHireRoutes.route("/completeOrderUser").post(protect, Authorization(["user"]), directHireController.completeOrderUser);
 // Order Payments
 
+directHireRoutes.route("/cancelOrderByUser").post(protect, Authorization(["user"]), directHireController.cancelOrderByUser);
 directHireRoutes.route("/order/:orderId/payment-stage").post(protect, Authorization(["user"]),checkCodPaymentEligibility, directHireController.addPaymentStage);
 directHireRoutes.route("/order/:orderId/pay").post(protect, Authorization(["user"]), directHireController.makeServicePayment);
 directHireRoutes.route("/getAllDirectOrders").get(AdminProtect, directHireController.getAllDirectOrders);

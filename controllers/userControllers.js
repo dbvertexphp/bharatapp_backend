@@ -76,6 +76,7 @@ const verifyOtp = async (req, res) => {
     message: "OTP verified",
     token,
     isProfileComplete: user.isProfileComplete, // true = login, false = registration
+		role: user.role, // return user role
   });
 };
 

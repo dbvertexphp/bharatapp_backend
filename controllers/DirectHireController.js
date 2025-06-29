@@ -350,6 +350,16 @@ exports.completeOrderUser = async (req, res) => {
   }
 };
 
+exports.cancelOrderByUser = async (req, res) => {
+  try {
+    const { order_id } = req.body;
+    await DirectOrder.findByIdAndUpdate(order_id, { hire_status: "cancelled", user_status: "cancelled" }, { new: true });
+    res.json({ message: "Order marked as cancelled" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.getAllDirectOrders = async (req, res) => {
   try {
     const orders = await DirectOrder.find({ platform_fee_paid: true })
@@ -477,7 +487,6 @@ exports.getAllDirectOrdersApi = async (req, res) => {
           },
         ],
       });
-
     return res.json({
       status: true,
       message: "Direct orders fetched successfully",

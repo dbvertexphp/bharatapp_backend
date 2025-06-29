@@ -44,12 +44,12 @@ exports.createDispute = async (req, res) => {
 
       if (raised_by.toString() === order.user_id.toString()) {
         against = order.service_provider_id;
-        updateField.user_status = "cancelled";
+        updateField.user_status = "cancelledDispute";
       } else if (
         raised_by.toString() === order.service_provider_id.toString()
       ) {
         against = order.user_id;
-        updateField.hire_status = "cancelled";
+        updateField.hire_status = "cancelledDispute";
       } else {
         return res
           .status(403)

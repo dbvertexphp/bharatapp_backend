@@ -28,12 +28,12 @@ const directOrderSchema = new mongoose.Schema(
     },
     hire_status: {
       type: String,
-      enum: ["pending", "accepted", "rejected", "completed", "cancelled"],
+      enum: ["pending", "accepted", "rejected", "completed", "cancelled", "cancelledDispute"],
       default: "pending",
     },
     user_status: {
       type: String,
-      enum: ["completed", "cancelled"],
+      enum: ["completed", "cancelled", "cancelledDispute"],
       default: null,
     },
     assigned_worker: {
